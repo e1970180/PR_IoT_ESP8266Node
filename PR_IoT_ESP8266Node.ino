@@ -6,8 +6,8 @@
         #include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
     // --------------
 
+	#include "PR_IoT_Config.h"        //IoT settings-must bebefore PR_IoT.h
 	#include <PR_IoT.h>
-	#include "PR_IoT_Config.h"        //IoT network settings
 	
 //************* Devices headers  *************************
 
@@ -73,8 +73,7 @@ void setup() {
 	String  reasonForConfig;
   
 	WiFi.begin();
-    do {
-Serial.println("setup network connections");         
+    do {       
         reasonForConfig = "";
         
 		PR_DBGTLN("trying connect WiFi")        
