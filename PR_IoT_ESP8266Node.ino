@@ -37,6 +37,16 @@
 //#define     ADC            //D1mini=A0 //functions = analog     
 //************* end PINs allocation *************************
 
+//*************	Feedback LED	  *************************
+#ifdef FEEDBACK_LED
+	#include <Ticker.h>
+	Ticker flipper;
+	
+	#define PR_Blink_LEDS_MAX 1	//number of leds in project (8 by default if not defined here) This line must be before #include "PR_Blink.h"
+	#include "PR_Blink.h"		//ver 0.3.0
+	SimpleBlinker    feedbackLed(FEEDBACK_LED, HIGH);   //pin number for led, pin state for "on" state is HIGH (led connected to GND)
+
+#endif
 
 //************* Global vars *************************
     
@@ -68,6 +78,17 @@ void setup() {
     device2PosRegulator.setupHW(RELAY, HIGH, 1.0, 1.0, 200);    //(pin, bool onValue, float hysteresysL, float hysteresysH, uint16_t freqLimitationMS = 0);
     device2PosRegulator.setTargetValue(24);                     //initial value before MQTT set it
 
+
+
+	#ifdef FEEDBACK_LED
+		Blink.mode1configF(5,50);			//fast blinking f= 4Hz, duty 50%
+		Blink.mode2configF(2, 50);			//slow f= 2Hz, duty 50%
+		Blink.mode3configF(2, 5);			//flashes f= 2Hz, duty 10%
+		
+		flipper.attach(0.05, SimpleBlinker::update);
+		feedbackLed.on();				//turn on feedback Led     
+	#endif
+
 //******************    setup network connections   **************
   	
 	String  reasonForConfig;
@@ -76,7 +97,11 @@ void setup() {
     do {       
         reasonForConfig = "";
         
-		PR_DBGTLN("trying connect WiFi")        
+		PR_DBGTLN("trying connect WiFi")  
+		#ifdef FEEDBACK_LED
+			feedbackLed.setmode(BL_MODE1);	
+        #endif
+		
         int wifiConnectionCountdown = 20;             
         while (WiFi.status() != WL_CONNECTED && wifiConnectionCountdown > 0 ) {
             delay(1000);
@@ -93,6 +118,10 @@ void setup() {
             
             if ( WiFi.isConnected() ) {
                 PR_DBGTLN("WiFi connected, connecting to MQTT")
+				#ifdef FEEDBACK_LED
+					feedbackLed.setmode(BL_MODE2);
+				#endif
+				
                 //************ MQTT setup   ***************       
                 MQTTclient.setServer(NodeMQTT.creditals.serverIP, NodeMQTT.creditals.port);
                 MQTTclient.setCallback(callbackMQTT);
@@ -114,6 +143,9 @@ void setup() {
         }
 		
         if ( reasonForConfig != "" ) {
+			#ifdef FEEDBACK_LED
+				feedbackLed.setmode(BL_MODE3);
+			#endif
 			WiFiconnectionWizard(reasonForConfig);
 		}
     } while ( reasonForConfig != "");
@@ -123,10 +155,15 @@ void setup() {
       
 //***********	Devices begin([s])	*****************
 		        
-        deviceLEDgreen.begin(-1);   
-        deviceTemp.begin(10);               //report temp          
-        device2PosRegulator.begin(0);
+    deviceLEDgreen.begin(-1);   
+    deviceTemp.begin(10);               //report temp          
+    device2PosRegulator.begin(0);
 
+	#ifdef FEEDBACK_LED
+		feedbackLed.setmode(BL_CONT);	
+		feedbackLed.off();
+	#endif		
+		
 PR_DBGTLN("SETUP FINISHED");
 }//setup
 
